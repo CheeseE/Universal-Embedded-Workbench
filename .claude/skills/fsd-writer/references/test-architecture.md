@@ -6,7 +6,11 @@ mobile, SDR, or hybrid systems; only the layer *contents* and tier *names* chang
 Two FSD homes:
 
 - **§2.4 Component Layering** — the architecture (what the system is made of).
-- **§8.0 Test Architecture** — the test tiers + a generated coverage matrix.
+- **§x.0 Test Architecture** — the test tiers + a generated coverage matrix (the
+  V&V chapter under Part E; the chapter number is whatever it lands on).
+
+§2.4 is the spine: the FSD body Parts/chapters and the test-spec files both mirror
+these components, so the architecture, the spec, and the matrix share one shape.
 
 The seam: this skill (`fsd-writer`) *declares* the layers and an empty matrix
 skeleton; a test-traceability tool *fills in* status. Structure vs. status.
@@ -146,7 +150,7 @@ Mapping to layers (any profile):
 
 ## 4. Component × tier coverage matrix
 
-§8.0 should reference a **generated** matrix: rows = the §2.4 components (grouped
+The V&V chapter's §x.0 should reference a **generated** matrix: rows = the §2.4 components (grouped
 by layer), columns = tiers, each cell = covered/total requirements at that
 (component, tier). Generate it from traceability data (requirement → component;
 requirement → tier) crossed with test linkage — so it cannot drift from the code.

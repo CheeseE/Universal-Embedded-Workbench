@@ -30,7 +30,7 @@ an external service = foundation; hand-written decoder/driver/handler = interfac
 - **L2 — Application logic**: control loops, state machines, scheduling/decision
   logic. Pure functions on the host tier.
 
-## Test tiers (for FSD §8.0)
+## Test tiers (for the §x.0 Test Architecture, in the V&V chapter)
 
 | Tier | Runs on | Speed | Catches |
 |---|---|---|---|
@@ -45,8 +45,9 @@ predicate separate from its HTTP/flash handler) so it is host-testable.
 ## Standard test libraries
 
 Conditionally include standard test cases based on detected features. Scan the FSD
-and source for the patterns, then fold the matching spec's tests into §8 (and the
-traceability matrix).
+and source for the patterns, then fold the matching spec's tests into the test-spec
+files that mirror the affected chapters (the generated traceability matrix picks
+them up automatically).
 
 | Feature | Detection Patterns | Test Spec | Include |
 |---------|-------------------|-----------|---------|
@@ -68,7 +69,8 @@ traceability matrix).
 2. For each detected feature, read the corresponding `references/domains/esp32/*.md`.
 3. Copy relevant requirements, functional tests, and edge cases into the FSD.
 4. Update project-specific placeholders (SSIDs, IPs, timeouts, etc.).
-5. Add all included tests to the traceability matrix (§8.4).
+5. Place the included tests in the spec files mirroring their chapters; the
+   generated traceability matrix will reflect them (do not hand-edit the matrix).
 
 ### Spec files
 

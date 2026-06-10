@@ -69,7 +69,8 @@ Behavior:
 3. Ask clarifying questions only if the delta introduces architectural ambiguity.
 4. Apply changes surgically — preserve all unaffected sections verbatim.
 5. Regenerate only the sections affected by the delta.
-6. Maintain numbering, cross-references, and the traceability matrix automatically.
+6. Maintain numbering and cross-references; the traceability matrix is
+   **regenerated** by the traceability tool, never hand-edited in the FSD.
 7. Write the updated file using the **Edit** tool (preferred) or **Write** tool
    (if changes are too extensive for surgical edits).
 
@@ -139,7 +140,8 @@ When updating an existing FSD:
 - Use the **Edit** tool with precise `old_string` / `new_string` pairs.
 - If a delta adds a new phase, insert it and renumber subsequent phases.
 - If a delta adds new FRs, assign the next available FR number in the correct group.
-- Always update the traceability matrix when FRs or tests change.
+- The traceability matrix is generated — when FRs or tests change, ensure it is
+  regenerated; never hand-edit coverage status in the FSD.
 - If the delta invalidates existing content, remove or revise it — do not leave
   contradictions.
 
@@ -258,7 +260,10 @@ If components are implied but not explicit, infer and mark as assumptions.
 ### 6.4 Functional Requirements (FR)
 
 Convert each described behavior into FR-x.y items:
-- Group logically (Communication, Data Processing, User Interaction, Safety)
+- **State each FR in the chapter of the component it constrains** — there is no
+  global Functional Requirements section in the Parts scheme (Section 7). An FR
+  about the meter decoder lives in the meter-decoder interface chapter; an FR
+  about the control loop lives in that L2 feature chapter.
 - Assign priority: **Must** / **Should** / **May**
 - Use "shall" language: "The system shall..."
 
@@ -283,11 +288,15 @@ Extract or infer key NFRs with priorities:
 
 ### 6.6 Interfaces & Data Models
 
-From the description and answers:
-- Identify protocols (BLE, WiFi, USB HID, HTTP, MQTT, LoRa, OCPP, etc.)
-- Describe endpoints, characteristics, topics, commands
+Each interface becomes its **own L1 chapter** (Part B) — there is no global
+Interface Specifications section in the Parts scheme. Per interface chapter:
+- Identify the protocol (BLE, WiFi, USB HID, HTTP, MQTT, LoRa, OCPP, etc.)
+- Describe endpoints, characteristics, topics, commands (commands/opcodes only
+  for custom protocols)
 - Define payload structures (fields, units, types)
 - Specify direction (client -> server, device -> cloud, etc.)
+- Keep the interface's requirements, schema, handlers, and failure modes together
+  in that chapter (see `references/canonical-fsd-structure.md`).
 
 ### 6.7 Phases
 
@@ -313,14 +322,15 @@ domain.
 
 From extracted requirements:
 - Create test cases that verify FRs and critical NFRs
-- Organize by phase and feature area
+- Organize test specs by component/interface, mirroring the body chapters
 - Use structured format: Objective, Preconditions, Steps, Expected Result
-- Build the traceability matrix (Section 8)
+- Reference the **generated** traceability matrix and gap report — do not
+  hand-fill coverage status (Section 8)
 
 ### 6.10 Component Layering & Test Architecture
 
 Give every FSD a layered component architecture (§2.4) that the test strategy
-falls out of (§8.0):
+falls out of (§x.0 Test Architecture, in the V&V chapter under Part E):
 
 - Classify each component into a layer with a strict one-way dependency —
   **L0 Foundation/platform → L1 Interfaces → L2 Application logic**. The L0-vs-L1
@@ -329,35 +339,66 @@ falls out of (§8.0):
   decoder/driver/handler is an interface.
 - Draw a layered component diagram in §2.4 (stacked layer boxes, components on one
   row per layer).
-- In §8.0, define the test tiers (cost-ordered execution environments, named per
-  platform), map them to the layers, and reference a **generated** component × tier
-  coverage matrix. This skill declares the structure; a traceability tool fills in
-  status.
+- **The FSD body mirrors these layers**: each component becomes a self-contained
+  chapter, grouped under layer **Part** dividers (L2 → L1 → L0 → cross-cutting →
+  operations & verification). The §2.4 layering is the spine; the body Parts are
+  its projection. See `references/canonical-fsd-structure.md` (the Parts scheme).
+- In §x.0 Test Architecture, define the test tiers (cost-ordered execution
+  environments, named per platform), map them to the layers, and reference a
+  **generated** component × tier coverage matrix. This skill declares the
+  structure; a traceability tool fills in status.
 
 Platform-independent — contents differ for embedded / cloud / mobile. For the
 profiles, the diagram convention (and the Mermaid layout gotcha), and the matrix,
 read `references/test-architecture.md`.
 
-## 7. Canonical FSD Structure
+## 7. Canonical FSD Structure (Layer-grouped "Parts" scheme)
 
-All generated or updated FSDs must conform to the canonical structure (Sections 1-11: System Overview, Architecture, Phases, Requirements, Risks, Interfaces, Operational Procedures, V&V, Troubleshooting, Appendix, Related). Section 11 is recommended (not mandatory): a list of `[[wikilinks]]` to related FSDs/ADRs/runbooks for Obsidian-vault navigation. For the full template with all subsections and section inclusion rules, read `references/canonical-fsd-structure.md`.
+FSDs are organized **by architectural layer**, not by document-section type. After
+the front matter (§1 Overview, §2 Architecture incl. §2.4 Component Layering, §3
+Phases, §4 Risks), the body is grouped under unnumbered **Part** dividers that
+mirror the §2.4 layers — **Part A** Application logic (L2), **Part B** Interfaces
+(L1), **Part C** Foundation/transport (L0), **Part D** Cross-cutting concerns,
+**Part E** Operations & Verification — followed by Appendices and an optional
+Related (`[[wikilinks]]`) section.
 
-## 8. Traceability Matrix (Mandatory)
+Each interface, feature, and concern is its **own self-contained chapter**
+(requirements + interface + behavior + failure modes together); chapters are
+numbered flat across the whole document; depth is capped at four heading levels
+(`####`). There is **no global Functional Requirements or Interface
+Specifications section** — those dissolve into the component chapters.
 
-Every FSD must contain a traceability matrix in Section 8.4.
+For Low-complexity projects the Part dividers may be dropped (list the few
+chapters directly, still in layer order). For the full skeleton, the
+chapter-internal structure, section-inclusion rules, complexity scaling, and the
+migration map from the older flat layout, read
+`references/canonical-fsd-structure.md`.
+
+## 8. Traceability (Mandatory, generated)
+
+Every FSD must carry traceability — but as a **pointer to generated artifacts**,
+never a hand-filled status table.
 
 Rules:
-- Every FR and NFR with priority **Must** or **Should** must appear in >= 1 test.
-- Every test case must reference the FR(s) / NFR(s) it validates.
-- Requirements with no test coverage must be flagged as `GAP`.
-- **May**-priority requirements may have test coverage but it is not mandatory.
-- When updating an FSD (evolve mode), the matrix must be regenerated to reflect
-  any added, removed, or changed requirements and tests.
+- Every FR and NFR with priority **Must** or **Should** must be stated (with a
+  stable ID, in its component chapter) and referenced by >= 1 test in the specs.
+- Every test case must reference the FR(s) / NFR(s) / clause(s) it validates.
+- The traceability tool computes coverage and emits the **coverage matrix**
+  (component × tier) and a **gap report** (requirements with no test). `GAP` is
+  *computed*, not typed into the FSD.
+- **May**-priority requirements may have coverage but it is not mandatory.
+- The FSD's V&V chapter (§x.2 Traceability) references the matrix/gap-report paths;
+  it must **not** hand-maintain a "Status: Covered / GAP" column — that drifts from
+  the code the moment a test changes (see `references/test-architecture.md` §4).
+- In evolve mode, adding/removing/changing a requirement or test just means the
+  generated matrix is re-run; no manual matrix edits.
 
 ## 9. Formatting & Style Rules
 
 - Output pure Markdown — no HTML tags.
-- Use heading levels exactly as defined in Section 7.
+- Heading levels: Part dividers are `#` (unnumbered); chapters are `##` (numbered
+  flat across the document); sub-sections `###`/`####`. **Cap depth at `####`** —
+  four levels. Keep chapter numbering sequential with no gaps across all Parts.
 - Use bullet lists for requirements; tables for tests, interfaces, and diagnostics.
 - Use concise, unambiguous engineering language.
 - Use **"shall"** for requirements ("The system shall...").
@@ -399,20 +440,26 @@ For a complete example FSD snippet (medium-complexity BLE HID Keyboard project) 
 
 ## 12. Evolve Mode -- Detailed Behavior
 
-When updating an existing FSD, follow strict rules for what to preserve, update, add, and remove. Key principles: never renumber existing IDs, always update the traceability matrix, flag contradictions before overwriting. For the complete evolve mode rules (preserve/update/add/remove/conflict resolution), read `references/evolve-mode.md`.
+When updating an existing FSD, follow strict rules for what to preserve, update, add, and remove. Key principles: never renumber existing IDs, keep the traceability matrix generated (never hand-edited), flag contradictions before overwriting. For the complete evolve mode rules (preserve/update/add/remove/conflict resolution), read `references/evolve-mode.md`.
 
 ## 13. Quality Checklist
 
 After generating or updating an FSD, the skill must verify:
 
-- [ ] Every **Must** and **Should** FR/NFR appears in the traceability matrix.
-- [ ] Every traceability row with no test is marked `GAP`.
+- [ ] The body is grouped by layer Parts (or chapters in layer order for Low
+      complexity), mirroring §2.4; chapters are self-contained.
+- [ ] Every **Must** and **Should** FR/NFR is stated with a stable ID in its
+      component chapter and referenced by >= 1 test in the specs.
+- [ ] V&V traceability is a **pointer to the generated matrix/gap report** — no
+      hand-filled "Status: Covered / GAP" column in the FSD.
 - [ ] No `<placeholder>` or `TODO` text remains (flag to user if unresolvable).
-- [ ] Section numbering is sequential with no gaps.
+- [ ] Chapter numbering is sequential with no gaps across all Parts; heading depth
+      does not exceed `####`.
 - [ ] All phases have scope, deliverables, and exit criteria.
-- [ ] §2.4 Component Layering (with a layered diagram) and §8.0 Test Architecture are present.
+- [ ] §2.4 Component Layering (with a layered diagram) and §x.0 Test Architecture
+      are present.
 - [ ] The file has been written to the correct path.
-- [ ] (Evolve mode) Unaffected sections are identical to the original.
+- [ ] (Evolve mode) Unaffected chapters are identical to the original.
 
 Report any checklist failures to the user before finalizing.
 
@@ -428,9 +475,10 @@ the project matches that domain — keeping the core applicable to any system.
 1. Detect the domain from the description, the codebase, and config files (each
    pack lists its own detection signals).
 2. If a pack matches, **read `references/domains/<domain>.md`** and apply it:
-   its **layer profile** (concrete L0/L1/L2 contents for §2.4), its **tier names**
-   (for §8.0), and its **standard test libraries** (feature detection → test specs
-   to fold into §8 and the traceability matrix).
+   its **layer profile** (concrete L0/L1/L2 contents for §2.4 — which becomes the
+   body's Part/chapter spine), its **tier names** (for the §x.0 Test Architecture),
+   and its **standard test libraries** (feature detection → test specs to fold into
+   the V&V specs and the generated traceability matrix).
 3. If no pack matches, use the platform-independent core only — the architecture
    layering and test tiers from `references/test-architecture.md` still apply; pick
    tier names that fit the platform (e.g. cloud: unit / integration / staging).
@@ -444,6 +492,6 @@ the project matches that domain — keeping the core applicable to any system.
 ### Adding a pack
 
 Create `references/domains/<domain>.md` following the same shape: **detection
-signals · layer profile (§2.4) · tier names (§8.0) · standard test libraries**
+signals · layer profile (§2.4) · tier names (§x.0 Test Architecture) · standard test libraries**
 (a feature-detection table pointing to spec files under
 `references/domains/<domain>/`). Then add a row to the table above.
