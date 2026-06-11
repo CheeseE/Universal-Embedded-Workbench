@@ -139,7 +139,8 @@ When updating an existing FSD:
 - **Never regenerate the entire file.** Only touch sections affected by the delta.
 - Use the **Edit** tool with precise `old_string` / `new_string` pairs.
 - If a delta adds a new phase, insert it and renumber subsequent phases.
-- If a delta adds new FRs, assign the next available FR number in the correct group.
+- If a delta adds new requirements, assign the next available ID (FR/NFR or clause,
+  per the FSD's convention) in the owning component chapter.
 - The traceability matrix is generated — when FRs or tests change, ensure it is
   regenerated; never hand-edit coverage status in the FSD.
 - If the delta invalidates existing content, remove or revise it — do not leave
@@ -259,11 +260,16 @@ If components are implied but not explicit, infer and mark as assumptions.
 
 ### 6.4 Functional Requirements (FR)
 
-Convert each described behavior into FR-x.y items:
-- **State each FR in the chapter of the component it constrains** — there is no
-  global Functional Requirements section in the Parts scheme (Section 7). An FR
-  about the meter decoder lives in the meter-decoder interface chapter; an FR
-  about the control loop lives in that L2 feature chapter.
+Convert each described behavior into a stated requirement:
+- **State each requirement in the chapter of the component it constrains** — there
+  is no global Functional Requirements section in the Parts scheme (Section 7). A
+  requirement about the meter decoder lives in the meter-decoder interface chapter;
+  one about the control loop lives in that L2 feature chapter.
+- **Two conventions** (pick one per project; see
+  `references/canonical-fsd-structure.md`): `FR-x.y`/`NFR-x.y [Must/Should/May]`
+  (the lightweight default), or **stable clause IDs + generated traceability** (a
+  finer-grained, higher-assurance alternative for large FSDs — every assertion gets
+  a stable ID, tests cite it, code is `@fsd`-tagged, a tool generates the matrix).
 - Assign priority: **Must** / **Should** / **May**
 - Use "shall" language: "The system shall..."
 
@@ -389,8 +395,9 @@ Every FSD must carry traceability — but as a **pointer to generated artifacts*
 never a hand-filled status table.
 
 Rules:
-- Every FR and NFR with priority **Must** or **Should** must be stated (with a
-  stable ID, in its component chapter) and referenced by >= 1 test in the specs.
+- Every **Must**/**Should** requirement — whether an `FR`/`NFR` item or a stable
+  **clause** (§6.4 conventions) — must be stated with a stable ID in its component
+  chapter and referenced by >= 1 test in the specs.
 - Every test case must reference the FR(s) / NFR(s) / clause(s) it validates.
 - The traceability tool computes coverage and emits the **coverage matrix**
   (component × tier) and a **gap report** (requirements with no test). `GAP` is
@@ -460,8 +467,8 @@ After generating or updating an FSD, the skill must verify:
 - [ ] §2.4 states the source-layout convention (one module per component; lower
       layers don't depend on higher ones; pure cores extracted) so the code can
       mirror the layers.
-- [ ] Every **Must** and **Should** FR/NFR is stated with a stable ID in its
-      component chapter and referenced by >= 1 test in the specs.
+- [ ] Every **Must**/**Should** requirement (FR/NFR item or stable clause) is
+      stated with a stable ID in its component chapter and referenced by >= 1 test.
 - [ ] V&V traceability is a **pointer to the generated matrix/gap report** — no
       hand-filled "Status: Covered / GAP" column in the FSD.
 - [ ] No `<placeholder>` or `TODO` text remains (flag to user if unresolvable).

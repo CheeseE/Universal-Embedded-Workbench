@@ -10,7 +10,8 @@ the Parts scheme separately (see the migration map in
 ## What to Preserve
 
 - All Part dividers, chapter headings, and numbering for unaffected chapters.
-- All existing FR/NFR IDs -- never renumber unless explicitly asked.
+- All existing requirement IDs (FR/NFR items or stable clauses) -- never renumber
+  unless explicitly asked.
 - All existing test case / clause IDs.
 - Prose in unaffected chapters -- do not rephrase or "improve" text that is not
   part of the delta.
@@ -26,8 +27,9 @@ the Parts scheme separately (see the migration map in
 
 ## What to Add
 
-- New FRs/NFRs go in the chapter of the component they constrain, taking the next
-  available ID there. Do **not** create a global requirements section.
+- New requirements (FR/NFR items or clauses, matching the FSD's convention) go in
+  the chapter of the component they constrain, taking the next available ID there.
+  Do **not** create a global requirements section.
 - A new component becomes a **new chapter under the correct layer Part** (L2/L1/L0/
   cross-cutting), placed in layer order; renumber following chapters.
 - New phases get inserted in logical order; subsequent phases are renumbered.

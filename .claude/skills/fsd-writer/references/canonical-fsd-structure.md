@@ -183,13 +183,33 @@ and `####` available.
 
 ### Requirements live in their owning chapter
 
-There is **no global Functional Requirements section**. Each FR/NFR is stated in
-the chapter of the component it constrains, using stable IDs:
+There is **no global Functional Requirements section**. Each requirement is stated
+in the chapter of the component it constrains, with a **stable ID**:
 
-- **FR-x.y [Must/Should/May]** / **NFR-x.y [Must/Should/May]**, "shall" language.
 - IDs are stable across evolve updates — never renumber unless explicitly asked.
 - Group logically within the chapter; cross-reference other chapters' requirements
   by ID, never by restating them.
+
+#### Two requirement conventions
+
+Express requirements either way — pick one per project and use it consistently:
+
+1. **FR/NFR items (default).** `FR-x.y` / `NFR-x.y [Must/Should/May]`, "shall"
+   language, in the component chapter. Best for Small–Medium FSDs — human-readable
+   and lightweight.
+2. **Stable clause IDs + generated traceability (for large / high-assurance
+   FSDs).** Every atomic, testable assertion gets a stable ID (e.g.
+   `FSD-<section>-<slug>`) held in a registry; tests cite the ID, implementing code
+   is tagged (`@fsd <id>`), and a tool generates the coverage matrix + gap report.
+   Clauses carry status (pending / deprecated / testability) so deferred or
+   non-mechanically-testable promises are tracked without inflating the gap count.
+   Finer-grained than FR/NFR; proven on a 700+-clause production FSD.
+
+Both satisfy the same contract: every requirement has a **stable ID**, lives in its
+**component chapter**, is **referenced by ≥ 1 test**, and coverage is **generated**
+(§x.2 Traceability) — never a hand-filled status table. The clause-ID system is the
+heavier, more rigorous option; FR/NFR is the lightweight default. Do not mix the two
+in one FSD.
 
 ---
 
