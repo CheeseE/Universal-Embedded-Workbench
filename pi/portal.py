@@ -28,6 +28,11 @@ try:
 except ImportError:
     ble_controller = None
 
+try:
+    import mqtt_controller
+except ImportError:
+    mqtt_controller = None
+
 PORT = 8080
 CONFIG_FILE = os.environ.get("RFC2217_CONFIG", "/etc/rfc2217/workbench.json")
 PROXY_EXE = "/usr/local/bin/plain_rfc2217_server.py"
@@ -1505,14 +1510,20 @@ def _release_slot_gpio(slot: dict) -> dict:
 # ---------------------------------------------------------------------------
 
 def _do_enter_portal(portal_ssid: str, wifi_ssid: str, wifi_password: str,
-                     portal_ip: str = "192.168.4.1"):
+                     portal_ip: str = "192.168.4.1",
+                     form_path: str = "/connect",
+                     form_fields: dict | None = None):
     """Connect to a device's captive portal SoftAP and submit WiFi credentials.
 
     1. Join the device's SoftAP (portal_ssid, open network)
-    2. POST credentials to the device's captive portal
+    2. POST form data to the device's captive portal (form_path, form_fields)
     3. Disconnect from SoftAP
-    4. Start our own AP with the submitted credentials so the device can connect
+    4. Start our own AP with wifi_ssid/wifi_password so the device can connect
+
+    form_fields overrides the form body entirely.  When None, falls back to the
+    reference-firmware defaults: {"ssid": wifi_ssid, "password": wifi_password}.
     """
+    import base64
     import urllib.parse
 
     # -- Step 1: join the device's captive portal SoftAP --
@@ -1524,18 +1535,22 @@ def _do_enter_portal(portal_ssid: str, wifi_ssid: str, wifi_password: str,
         log_activity(f"Failed to join '{portal_ssid}': {e}", "error")
         return
 
-    # -- Step 2: POST WiFi credentials to the captive portal --
-    log_activity(f"Submitting credentials (SSID: {wifi_ssid}) to captive portal...", "step")
+    # -- Step 2: POST form data to the captive portal --
+    fields = form_fields if form_fields is not None else {
+        "ssid": wifi_ssid,
+        "password": wifi_password,
+    }
+    field_summary = ", ".join(f"{k}={v!r}" for k, v in fields.items()
+                              if "pass" not in k.lower())
+    log_activity(
+        f"Submitting to {form_path} [{field_summary}]...", "step"
+    )
     try:
-        form_data = urllib.parse.urlencode({
-            "ssid": wifi_ssid,
-            "password": wifi_password,
-        }).encode("utf-8")
-        import base64
+        form_data = urllib.parse.urlencode(fields).encode("utf-8")
         body_b64 = base64.b64encode(form_data).decode("ascii")
         resp = wifi_controller.http_relay(
             method="POST",
-            url=f"http://{portal_ip}/connect",
+            url=f"http://{portal_ip}{form_path}",
             headers={"Content-Type": "application/x-www-form-urlencoded"},
             body=body_b64,
             timeout=10,
@@ -1651,6 +1666,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self._handle_firmware_list()
         elif path == "/api/ble/status":
             self._handle_ble_status()
+        elif path == "/api/mqtt/status":
+            self._handle_mqtt_status()
         elif path.startswith("/firmware/"):
             self._handle_firmware_download(path)
         elif path in ("/", "/index.html"):
@@ -1725,6 +1742,10 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self._handle_ble_disconnect()
         elif path == "/api/ble/write":
             self._handle_ble_write()
+        elif path == "/api/mqtt/start":
+            self._handle_mqtt_start()
+        elif path == "/api/mqtt/stop":
+            self._handle_mqtt_stop()
         else:
             self._send_json({"error": "not found"}, 404)
 
@@ -2341,6 +2362,10 @@ class Handler(http.server.BaseHTTPRequestHandler):
         portal_ip = body.get("portal_ip", "192.168.4.1")
         wifi_ssid = body.get("ssid", "")
         wifi_password = body.get("password", "")
+        # form_path: endpoint on the device's portal to POST to (default: /connect)
+        form_path = body.get("form_path", "/connect")
+        # form_fields: full form body dict; None = use {"ssid": ..., "password": ...}
+        form_fields = body.get("form_fields") or None
 
         if not wifi_ssid:
             self._send_json({"ok": False, "error": "ssid is required"})
@@ -2356,7 +2381,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
         def _bg_enter_portal():
             global _enter_portal_running
             try:
-                _do_enter_portal(portal_ssid, wifi_ssid, wifi_password, portal_ip)
+                _do_enter_portal(portal_ssid, wifi_ssid, wifi_password,
+                                 portal_ip, form_path, form_fields)
             except Exception as e:
                 log_activity(f"Enter-portal error: {e}", "error")
             finally:
@@ -2922,6 +2948,38 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return
         result = ble_controller.write(characteristic, data, response=response)
         self._send_json(result, 200 if result.get("ok") else 500)
+
+    # -- MQTT handlers --
+
+    def _handle_mqtt_status(self):
+        if not mqtt_controller:
+            self._send_json({"ok": True, "running": False, "port": None,
+                             "error": "mqtt_controller not available"})
+            return
+        s = mqtt_controller.status()
+        self._send_json({"ok": True, **s})
+
+    def _handle_mqtt_start(self):
+        if not mqtt_controller:
+            self._send_json({"ok": False, "error": "mqtt_controller not available"}, 501)
+            return
+        log_activity("mqtt.start", "step")
+        try:
+            result = mqtt_controller.start()
+            log_activity(f"mqtt.start — broker running on port {result['port']}", "ok")
+            self._send_json({"ok": True, **result})
+        except Exception as exc:
+            log_activity(f"mqtt.start — {exc}", "error")
+            self._send_json({"ok": False, "error": str(exc)}, 500)
+
+    def _handle_mqtt_stop(self):
+        if not mqtt_controller:
+            self._send_json({"ok": False, "error": "mqtt_controller not available"}, 501)
+            return
+        log_activity("mqtt.stop", "step")
+        mqtt_controller.stop()
+        log_activity("mqtt.stop — done", "ok")
+        self._send_json({"ok": True})
 
     # -- GDB debug handlers --
 

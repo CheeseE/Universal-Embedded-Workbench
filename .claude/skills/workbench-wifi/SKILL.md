@@ -155,7 +155,7 @@ curl "http://workbench.local:8080/api/wifi/events?timeout=30"
 
 ## Enter-Portal (Captive Portal Provisioning)
 
-Ensures a device is connected to the workbench AP. If the device has no WiFi credentials, the workbench provisions it via the device's captive portal.
+Provisions a device via its captive portal SoftAP, then starts the workbench AP so the device can connect back.
 
 ```bash
 curl -X POST http://workbench.local:8080/api/enter-portal \
@@ -163,25 +163,46 @@ curl -X POST http://workbench.local:8080/api/enter-portal \
   -d '{"portal_ssid": "iOS-Keyboard-Setup", "ssid": "TestAP", "password": "testpass123"}'
 ```
 
-| Field | Description |
-|-------|-------------|
-| `portal_ssid` | Device's captive portal SoftAP name |
-| `ssid` | Workbench's AP SSID (filled into the device's portal form) |
-| `password` | Workbench's AP password (filled into the device's portal form) |
+| Field | Required | Default | Description |
+|-------|----------|---------|-------------|
+| `portal_ssid` | yes | — | Device's captive portal SoftAP name to join |
+| `ssid` | yes | — | WiFi SSID to provision (also used for the workbench AP in step 4) |
+| `password` | no | `""` | WiFi password |
+| `portal_ip` | no | `192.168.4.1` | Device's portal IP |
+| `form_path` | no | `"/connect"` | Endpoint on the device portal to POST to |
+| `form_fields` | no | `null` | Full form body dict. `null` = use `{"ssid": ..., "password": ...}` |
 
 **Procedure:**
-1. Starts workbench AP (using `ssid`/`password`) if not already running
-2. Waits for the device to connect (it may already have credentials)
-3. If device doesn't connect, workbench joins the device's captive portal SoftAP (`portal_ssid`)
-4. Follows the auto-redirect to the portal page
-5. Parses the HTML form and fills in the workbench AP credentials
-6. Submits the form
-7. Disconnects from the device's SoftAP
-8. Waits for the device to reboot and connect to the workbench AP
+1. Workbench joins the device's captive portal SoftAP (`portal_ssid`, open network)
+2. POSTs `form_fields` (or default `ssid`/`password`) to `http://{portal_ip}{form_path}`
+3. Disconnects from the device's SoftAP
+4. Starts workbench AP (`ssid`/`password`) so the device can connect back
 
-**All three values must come from the project FSD** — never guess them.
+**All values must come from the project FSD** — never guess them.
 
 Monitor progress via `GET /api/log`.
+
+### jbdBridge example
+
+jbdBridge uses `/save` as the form endpoint and a different set of field names:
+
+```bash
+curl -X POST http://workbench.local:8080/api/enter-portal \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "portal_ssid": "JBDBridge-Setup",
+    "ssid": "TestAP",
+    "password": "testpass123",
+    "form_path": "/save",
+    "form_fields": {
+      "wifi_ssid": "TestAP",
+      "wifi_pass": "testpass123",
+      "mqtt_uri": "mqtt://192.168.4.1:1883",
+      "mqtt_prefix": "jbd/",
+      "poll_interval": "30"
+    }
+  }'
+```
 
 ## Common Workflows
 

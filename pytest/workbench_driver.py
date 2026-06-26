@@ -309,12 +309,38 @@ class WorkbenchDriver:
         )
         return {k: v for k, v in result.items() if k != "ok"}
 
-    def enter_portal(self, slot: str = "SLOT2",
-                     resets: int = 3) -> dict:
-        """POST /api/enter-portal — starts background portal trigger."""
-        result = self._api_post(
-            "/api/enter-portal", {"slot": slot, "resets": resets}, timeout=10
-        )
+    def enter_portal(self,
+                     portal_ssid: str = "iOS-Keyboard-Setup",
+                     ssid: str = "",
+                     password: str = "",
+                     portal_ip: str = "192.168.4.1",
+                     form_path: str = "/connect",
+                     form_fields: Optional[dict] = None) -> dict:
+        """POST /api/enter-portal — join device's captive portal SoftAP and provision.
+
+        Args:
+            portal_ssid:  Device's captive portal AP name to join.
+            ssid:         WiFi SSID to provision into the device (also used for
+                          the workbench AP started in step 4).
+            password:     WiFi password for ssid.
+            portal_ip:    Device's portal IP (default 192.168.4.1).
+            form_path:    Endpoint on the device portal to POST to
+                          (default "/connect"; jbdBridge uses "/save").
+            form_fields:  Full form body dict.  None = use reference-firmware
+                          defaults {"ssid": ssid, "password": password}.
+                          Pass a dict for devices with different field names or
+                          extra fields (e.g. jbdBridge: wifi_ssid, mqtt_uri, …).
+        """
+        body: dict = {
+            "portal_ssid": portal_ssid,
+            "ssid": ssid,
+            "password": password,
+            "portal_ip": portal_ip,
+            "form_path": form_path,
+        }
+        if form_fields is not None:
+            body["form_fields"] = form_fields
+        result = self._api_post("/api/enter-portal", body, timeout=10)
         return {k: v for k, v in result.items() if k != "ok"}
 
     def wait_for_state(self, slot_label: str, state: str,
@@ -628,6 +654,20 @@ class WorkbenchDriver:
     def ble_status(self) -> dict:
         """Get BLE connection state."""
         return self._api_get("/api/ble/status")
+
+    # ── MQTT broker ──────────────────────────────────────────────────
+
+    def mqtt_start(self) -> dict:
+        """Start the mosquitto MQTT broker. Returns {"port": 1883}."""
+        return self._api_post("/api/mqtt/start", timeout=10)
+
+    def mqtt_stop(self) -> None:
+        """Stop the mosquitto MQTT broker."""
+        self._api_post("/api/mqtt/stop", timeout=10)
+
+    def mqtt_status(self) -> dict:
+        """Return broker status: {"running": bool, "port": int|None}."""
+        return self._api_get("/api/mqtt/status")
 
     # ── Serial recovery ──────────────────────────────────────────────
 
